@@ -1,12 +1,13 @@
 import os
 import sys
 import argparse
+from Bio import SeqIO
 
 #function to parse command line arguments
 def check_arg(args=None):
     parser = argparse.ArgumentParser(
     description="Wrapper script that runs a pipeline to analyze a virus genome")
-    parser.add_argument("-i",'--input', help = 'input file', nargs = '+',required=True) # nargs  allows you to pass multiple input files
+    parser.add_argument("-i",'--input', help = 'input files', nargs = '+',required=True) # nargs  allows you to pass multiple input files
     return parser.parse_args(args)
 
 #retrieve command line arguments
@@ -22,33 +23,13 @@ for file in os.listdir(os.getcwd()):
         os.rename(os.path.join(os.getcwd(), file),os.path.join('PipelineProject_MeganMarie_Martinez',file))
 
 os.chdir('PipelineProject_MeganMarie_Martinez')
-log_file = open("PipelineProject.log", "x")
-formatted_inputs = " ".join(inputs)
-
-## STEP 2
-
-from Bio import SeqIO
+log_file = open("PipelineProject.log", "x") # creates the log file
 
 '''
-This script takes fastq files and output a fastq file for each donor that was mapped to the ref genome. these mapped reads will be used for assembly in step 3
+This part of the script takes fastq files and output a fastq file for each donor that was mapped to the ref genome. these mapped reads will be used for assembly in step 3
 
 '''
-
-#function to parse command line arguments
-def check_arg(args=None):
-    parser = argparse.ArgumentParser(
-    description="Returns the number of reads that meet or surpass the quality score threshold at the specified percentage of bases")
-    parser.add_argument("-i",'--input', help = 'input file', nargs = '+',required=True) # nargs  allows you to pass multiple input files
-    return parser.parse_args(args)
-
-#retrieve command line arguments
-arguments = check_arg(sys.argv[1:])
-inputs = arguments.input # this creates a list of all the input files 
-
-'''
-Per the assignment, the only data that the parser is expected to take is the full data restrieved from step 1
-(both donors) or the sample data. This next part determines what type of data has been passed through
-'''
+# determines what type of data was passed through
 two_dpi = []
 six_dpi = []
 if len(inputs) == 4 and inputs[0].startswith('S'): #four fastq files total for the paired-end reads of the two donors
@@ -87,21 +68,23 @@ if inputs[0].startswith('S'): # if this is the actual data
         else:
             t_reverse = i
     mapping_command_two = f' bowtie2 -x HCMV -1 {t_forward} -2 {t_reverse} --al-conc-gz two_dpi_mapped_%.fq.gz -p 2'
-    os.system(mapping_command_two)
+    os.system(mapping_command_two) # maps to the reference genome for 2dpi sample
     for i in six_dpi:
         if i.endswith('1.fastq'):
             t_forward = i
         else:
             t_reverse = i
     mapping_command_six = f'bowtie2 -x HCMV -1 {t_forward} -2 {t_reverse} --al-conc-gz six_dpi_mapped_%.fq.gz -p 2'
-    os.system(mapping_command_six)
-    os.system('gunzip *.gz')
+    os.system(mapping_command_six) # maps to the reference genome for the 6dpi sample
+    os.system('gunzip *.gz') # unzips the zipped files created after mapping
+    # counts how many reads there were after filtering
     post_filter_two_dpi = count_reads('two_dpi_mapped_1.fq')
     post_filter_six_dpi = count_reads('six_dpi_mapped_1.fq')
+    # writes results to an output file
     with open("PipelineProject.log", "a") as f:
         f.write(f'Donor 1 (2dpi) had {pre_filter_two_dpi} read pairs before Bowtie2 filtering and {post_filter_two_dpi} read pairs after.' + '\n')
         f.write(f'Donor 1 (6dpi) had {pre_filter_six_dpi} read pairs before Bowtie2 filtering and {post_filter_six_dpi} read pairs after.' + '\n')
-else: # the sample was used
+else: # the sample was used, same process as above
     t_forward_1 = ''
     t_forward_1 = ''
     t_forward_2 = ''
@@ -135,8 +118,9 @@ os.system('rm -r ncbi_dataset')
 os.system('rm README.md')
 os.system('rm md5sum.txt')
 
-## STEP 3
+## STEP 3: Assembling transcriptomes together using SPAdes ##
 
+# function to run spades
 def spades():
     input = []
     for file in os.listdir(os.getcwd()):
@@ -171,7 +155,7 @@ def pairing(input):
 
 spades() # actually running the script
 
-## STEP 4
+## STEP 4: Filtering contigs by size and calculating the assembly size ##
 
 def contig_calculations():
     count = 0
@@ -185,20 +169,19 @@ def contig_calculations():
         f.write(f'There are {count} contigs > 1000 bp in the assembly' + '\n')
         f.write(f'There are {assembly_length} bp in the assembly' + '\n')
 
-if __name__ == "__main__":
-    contig_calculations()
-
 contig_calculations()
 
-## STEP 5 
+## STEP 5: Running BLAST with the longest contig to determine what other virus strains it aligns with ##
 def blast():
     long_holders = []
     contigs = './SPADES_assembly/contigs.fasta'
+    # finding the longest contig
     for record in SeqIO.parse(open(contigs),'fasta'):
         if len(record.seq) > 1000:
             long_holders.append(record.seq)
     long_holders.sort(key = len, reverse = True)
     longest_contig = long_holders[0]
+    # writing the contig to a file
     with open('longest_contig.fasta','w') as f:
         f.write(str(longest_contig))
     # setting up the blastdb
