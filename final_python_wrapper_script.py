@@ -192,7 +192,7 @@ def blast():
     makeblast_db = f'makeblastdb -in {betaherpesvirinae} -out betaherpesvirinae -title beatherpesvirinae -dbtype nucl' # command to make the blastdb
     os.system(makeblast_db)
     # blasting against database
-    blastn_command = f'blastn -query longest_contig.fasta -db betaherpesvirinae -max_target_seqs 11 -max_hsps 1  -out blast_output.tsv -outfmt "6 sacc pident length qstart qend sstart send bitscore evalue stitle"'
+    blastn_command = f'blastn -query longest_contig.fasta -db betaherpesvirinae -max_target_seqs 10 -max_hsps 1  -out blast_output.tsv -outfmt "6 sacc pident length qstart qend sstart send bitscore evalue stitle"'
     os.system(blastn_command)
     # writing to .log
     with open("PipelineProject.log",'a') as f:
