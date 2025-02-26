@@ -185,7 +185,7 @@ def blast():
     with open('longest_contig.fasta','w') as f:
         f.write(str(longest_contig))
     # setting up the blastdb
-    betaherpesvirinae_datasets_command = 'datasets download virus genome taxon betaherpesvirinae --refseq --include genome' # command to pull down the subfamily genomes
+    betaherpesvirinae_datasets_command = 'datasets download virus genome taxon betaherpesvirinae --include genome' # command to pull down the subfamily genomes
     os.system(betaherpesvirinae_datasets_command)
     os.system('unzip ncbi_dataset.zip')
     betaherpesvirinae = './ncbi_dataset/data/*genomic.fna' # path to the fasta w genomes from the Betaherpesvirinae subfamily
@@ -200,7 +200,6 @@ def blast():
         blast_output = open('blast_output.tsv','r')
         blast_output = blast_output.read()
         output_lines = blast_output.splitlines()
-        output_lines = output_lines[1:]
         for line in output_lines:
             f.write(line + '\n')
 blast()
