@@ -1,4 +1,4 @@
-# Viral Transcriptome Analysis Pipeline Project
+# Viral Transcriptome Analysis Pipeline
 Python pipeline project for COMP 383
 
 ## Program Description
